@@ -1,6 +1,6 @@
-/*         ______   ___    ___ 
- *        /\  _  \ /\_ \  /\_ \ 
- *        \ \ \L\ \\//\ \ \//\ \      __     __   _ __   ___ 
+/*         ______   ___    ___
+ *        /\  _  \ /\_ \  /\_ \
+ *        \ \ \L\ \\//\ \ \//\ \      __     __   _ __   ___
  *         \ \  __ \ \ \ \  \ \ \   /'__`\ /'_ `\/\`'__\/ __`\
  *          \ \ \/\ \ \_\ \_ \_\ \_/\  __//\ \L\ \ \ \//\ \L\ \
  *           \ \_\ \_\/\____\/\____\ \____\ \____ \ \_\\ \____/
@@ -44,8 +44,8 @@ void setup_direct_shifts(void)
    _rgb_b_shift_24 = 0;
 
    _rgb_a_shift_32 = 24;
-   _rgb_r_shift_32 = 16; 
-   _rgb_g_shift_32 = 8; 
+   _rgb_r_shift_32 = 16;
+   _rgb_g_shift_32 = 8;
    _rgb_b_shift_32 = 0;
 }
 
@@ -58,12 +58,8 @@ unsigned long osx_qz_write_line(BITMAP *bmp, int line)
 {
    if (!(bmp->id & BMP_ID_LOCKED)) {
       bmp->id |= BMP_ID_LOCKED;
-      if (bmp->extra) {
-         while (!QDDone(BMP_EXTRA(bmp)->port));
-         LockPortBits(BMP_EXTRA(bmp)->port);
-      }
    }
-   
+
    return (unsigned long)(bmp->line[line]);
 }
 
@@ -76,8 +72,6 @@ void osx_qz_unwrite_line(BITMAP *bmp)
 {
    if (bmp->id & BMP_ID_AUTOLOCK) {
       bmp->id &= ~(BMP_ID_LOCKED | BMP_ID_AUTOLOCK);
-      if (bmp->extra)
-         UnlockPortBits(BMP_EXTRA(bmp)->port);
    }
 }
 
@@ -88,12 +82,9 @@ void osx_qz_unwrite_line(BITMAP *bmp)
  */
 void osx_qz_acquire(BITMAP *bmp)
 {
+   // Check if the bitmap is not already locked
    if (!(bmp->id & BMP_ID_LOCKED)) {
       bmp->id |= BMP_ID_LOCKED;
-      if (bmp->extra) {
-         while (!QDDone(BMP_EXTRA(bmp)->port));
-         while (LockPortBits(BMP_EXTRA(bmp)->port));
-      }
    }
 }
 
@@ -105,8 +96,6 @@ void osx_qz_acquire(BITMAP *bmp)
 void osx_qz_release(BITMAP *bmp)
 {
    bmp->id &= ~BMP_ID_LOCKED;
-   if (bmp->extra)
-      UnlockPortBits(BMP_EXTRA(bmp)->port);
 }
 
 
@@ -124,35 +113,36 @@ void osx_qz_created_sub_bitmap(BITMAP *bmp, BITMAP *parent)
 /* _make_quickdraw_bitmap:
  *  Creates a BITMAP using a QuickDraw GWorld as backing store.
  */
-static BITMAP *_make_quickdraw_bitmap(int width, int height, int flags)
+static BITMAP *_make_quickdraw_bitmap(int width, int height)
 {
    BITMAP *bmp;
-   GWorldPtr gworld;
+   CGContextRef context;
+   CGColorSpaceRef colorSpace;
    Rect rect;
    char *addr;
    int pitch;
    int i, size;
-   
-   /* create new GWorld */
-   SetRect(&rect, 0, 0, width, height);
-   if (NewGWorld(&gworld, screen->vtable->color_depth, &rect, NULL, NULL, flags))
+
+   colorSpace = CGColorSpaceCreateDeviceRGB();
+   context = CGBitmapContextCreate(NULL, width, height, 8, 4 * width, colorSpace, kCGImageAlphaPremultipliedLast);
+   CGColorSpaceRelease(colorSpace);
+   if (!context)
       return NULL;
-   
-   LockPortBits(gworld);
-   addr = GetPixBaseAddr(GetPortPixMap(gworld));
-   pitch = GetPixRowBytes(GetPortPixMap(gworld));
-   UnlockPortBits(gworld);
+
+   addr = CGBitmapContextGetData(context);
+   pitch = CGBitmapContextGetBytesPerRow(context);
+
    if (!addr) {
-      DisposeGWorld(gworld);
+      CGContextRelease(context);
       return NULL;
    }
 
    /* create Allegro bitmap */
    size = sizeof(BITMAP) + sizeof(char *) * height;
 
-   bmp = (BITMAP *) malloc(size);
+   bmp = (BITMAP *) malloc(sizeof(BITMAP) + sizeof(char *) * height);
    if (!bmp) {
-      DisposeGWorld(gworld);
+      CGContextRelease(context);
       return NULL;
    }
 
@@ -178,11 +168,11 @@ static BITMAP *_make_quickdraw_bitmap(int width, int height, int flags)
    bmp->extra = malloc(sizeof(struct BMP_EXTRA_INFO));
    if (!bmp->extra) {
       free(bmp);
-      DisposeGWorld(gworld);
+      CGContextRelease(context);
       return NULL;
    }
-   BMP_EXTRA(bmp)->port = gworld;
-   
+   BMP_EXTRA(bmp)->port = context;
+
    return bmp;
 }
 
@@ -197,7 +187,7 @@ BITMAP *osx_qz_create_video_bitmap(int width, int height)
       osx_screen_used = TRUE;
       return screen;
    }
-   return _make_quickdraw_bitmap(width, height, useDistantHdwrMem);
+   return _make_quickdraw_bitmap(width, height);
 }
 
 
@@ -207,7 +197,7 @@ BITMAP *osx_qz_create_video_bitmap(int width, int height)
  */
 BITMAP *osx_qz_create_system_bitmap(int width, int height)
 {
-   return _make_quickdraw_bitmap(width, height, useLocalHdwrMem);
+   return _make_quickdraw_bitmap(width, height);
 }
 
 
@@ -224,7 +214,7 @@ void osx_qz_destroy_video_bitmap(BITMAP *bmp)
      }
      if (bmp->extra) {
          if (BMP_EXTRA(bmp)->port)
-            DisposeGWorld(BMP_EXTRA(bmp)->port);
+            CGContextRelease(BMP_EXTRA(bmp)->port);
          free(bmp->extra);
       }
       free(bmp);
@@ -238,19 +228,23 @@ void osx_qz_destroy_video_bitmap(BITMAP *bmp)
  */
 void osx_qz_blit_to_self(BITMAP *source, BITMAP *dest, int source_x, int source_y, int dest_x, int dest_y, int width, int height)
 {
-   Rect source_rect, dest_rect;
-   
-   SetRect(&source_rect, source_x + source->x_ofs, source_y + source->y_ofs,
-      source_x + source->x_ofs + width, source_y + source->y_ofs + height);
-   SetRect(&dest_rect, dest_x + dest->x_ofs, dest_y + dest->y_ofs,
-      dest_x + dest->x_ofs + width, dest_y + dest->y_ofs + height);
+   CGRect source_rect = CGRectMake(source_x + source->x_ofs, source_y + source->y_ofs, width, height);
+   CGRect dest_rect = CGRectMake(dest_x + dest->x_ofs, dest_y + dest->y_ofs, width, height);
 
-   while (!QDDone(BMP_EXTRA(dest)->port));
-   if (!(dest->id & BMP_ID_LOCKED))
-      LockPortBits(BMP_EXTRA(dest)->port);
-   CopyBits(GetPortBitMapForCopyBits(BMP_EXTRA(source)->port),
-            GetPortBitMapForCopyBits(BMP_EXTRA(dest)->port),
-	    &source_rect, &dest_rect, srcCopy, NULL);
-   if (!(dest->id & BMP_ID_LOCKED))
-      UnlockPortBits(BMP_EXTRA(dest)->port);
+   CGContextRef source_context = BMP_EXTRA(source)->port;
+   CGContextRef dest_context = BMP_EXTRA(dest)->port;
+
+   if (!(dest->id & BMP_ID_LOCKED)) {
+      dest->id |= BMP_ID_LOCKED;
+   }
+
+   CGImageRef image = CGBitmapContextCreateImage(source_context);
+
+   CGContextDrawImage(dest_context, dest_rect, image);
+
+   CGImageRelease(image);
+
+   if (dest->id & BMP_ID_LOCKED) {
+      dest->id &= ~BMP_ID_LOCKED;
+   }
 }
