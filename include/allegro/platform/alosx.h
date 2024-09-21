@@ -1,6 +1,6 @@
-/*         ______   ___    ___ 
- *        /\  _  \ /\_ \  /\_ \ 
- *        \ \ \L\ \\//\ \ \//\ \      __     __   _ __   ___ 
+/*         ______   ___    ___
+ *        /\  _  \ /\_ \  /\_ \
+ *        \ \ \L\ \\//\ \ \//\ \      __     __   _ __   ___
  *         \ \  __ \ \ \ \  \ \ \   /'__`\ /'_ `\/\`'__\/ __`\
  *          \ \ \/\ \ \_\ \_ \_\ \_/\  __//\ \L\ \ \ \//\ \L\ \
  *           \ \_\ \_\/\____\/\____\ \____\ \____ \ \_\\ \____/
@@ -42,7 +42,6 @@
       #import <CoreAudio/CoreAudio.h>
       #import <AudioUnit/AudioUnit.h>
       #import <AudioToolbox/AudioToolbox.h>
-      #import <QuickTime/QuickTime.h>
       #import <IOKit/IOKitLib.h>
       #import <IOKit/IOCFPlugIn.h>
       #import <IOKit/hid/IOHIDLib.h>
