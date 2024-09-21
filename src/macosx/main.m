@@ -1,6 +1,6 @@
-/*         ______   ___    ___ 
- *        /\  _  \ /\_ \  /\_ \ 
- *        \ \ \L\ \\//\ \ \//\ \      __     __   _ __   ___ 
+/*         ______   ___    ___
+ *        /\  _  \ /\_ \  /\_ \
+ *        \ \ \L\ \\//\ \ \//\ \      __     __   _ __   ___
  *         \ \  __ \ \ \ \  \ \ \   /'__`\ /'_ `\/\`'__\/ __`\
  *          \ \ \/\ \ \_\ \_ \_\ \_/\  __//\ \L\ \ \ \//\ \L\ \
  *           \ \_\ \_\/\____\/\____\ \____\ \____ \ \_\\ \____/
@@ -46,7 +46,7 @@ static BOOL in_bundle(void)
    FSCatalogInfo processInfo;
    GetProcessBundleLocation(&psn, &processRef);
    FSGetCatalogInfo(&processRef, kFSCatInfoNodeFlags, &processInfo, NULL, NULL, NULL);
-   if (processInfo.nodeFlags & kFSNodeIsDirectoryMask) 
+   if (processInfo.nodeFlags & kFSNodeIsDirectoryMask)
      return YES;
    else
      return NO;
@@ -76,9 +76,9 @@ static BOOL in_bundle(void)
 
    /* create mutex */
    osx_event_mutex=_unix_create_mutex();
-   
+
    pool = [[NSAutoreleasePool alloc] init];
-   if (in_bundle() == YES)   
+   if (in_bundle() == YES)
    {
       /* In a bundle, so chdir to the containing directory,
        * or to the 'magic' resource directory if it exists.
@@ -114,31 +114,25 @@ static BOOL in_bundle(void)
       }
    }
    /* else: not in a bundle so don't chdir */
-   
+
    mode = CGDisplayCurrentMode(kCGDirectMainDisplay);
    CFNumberGetValue(CFDictionaryGetValue(mode, kCGDisplayRefreshRate), kCFNumberSInt32Type, &refresh_rate);
    if (refresh_rate <= 0)
       refresh_rate = 70;
-   
+
    [NSThread detachNewThreadSelector: @selector(app_main:)
       toTarget: [AllegroAppDelegate class]
       withObject: nil];
-   
+
    while (1) {
       if (osx_gfx_mode == OSX_GFX_WINDOW)
          osx_update_dirty_lines();
       _unix_lock_mutex(osx_event_mutex);
-      if (osx_gfx_mode == OSX_GFX_FULL) {
-         if ((osx_palette) && (osx_palette_dirty)) {
-            CGDisplaySetPalette(kCGDirectMainDisplay, osx_palette);
-	    osx_palette_dirty = FALSE;
-	 }
-      }
       osx_event_handler();
       _unix_unlock_mutex(osx_event_mutex);
       usleep(1000000 / refresh_rate);
    }
-   
+
    [pool release];
    _unix_destroy_mutex(osx_event_mutex);
 }
@@ -152,8 +146,8 @@ static BOOL in_bundle(void)
 {
    CFDictionaryRef mode;
    int new_refresh_rate;
-   
-   if ((osx_window) && (osx_gfx_mode == OSX_GFX_WINDOW)) 
+
+   if ((osx_window) && (osx_gfx_mode == OSX_GFX_WINDOW))
    {
       osx_setup_colorconv_blitter();
       [osx_window display];
@@ -251,10 +245,10 @@ int main(int argc, char *argv[])
 
    __crt0_argc = argc;
    __crt0_argv = argv;
-   
+
    if (!osx_bootstrap_ok()) /* not safe to use NSApplication */
       call_user_main();
-      
+
    [NSApplication sharedApplication];
 
    /* Load the main menu nib if possible */
@@ -264,11 +258,11 @@ int main(int argc, char *argv[])
        /* Didn't load the nib; create a default menu programmatically */
        NSString* title = nil;
        NSDictionary* app_dictionary = [[NSBundle mainBundle] infoDictionary];
-       if (app_dictionary) 
+       if (app_dictionary)
        {
           title = [app_dictionary objectForKey: @"CFBundleName"];
        }
-       if (title == nil) 
+       if (title == nil)
        {
           title = [[NSProcessInfo processInfo] processName];
        }
@@ -292,10 +286,10 @@ int main(int argc, char *argv[])
    }
 
    [NSApp setDelegate: app_delegate];
-   
+
    [NSApp run];
    /* Can never get here */
-   
+
    return 0;
 }
 
