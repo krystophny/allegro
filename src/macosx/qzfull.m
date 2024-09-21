@@ -87,7 +87,7 @@ GFX_DRIVER gfx_quartz_full =
 
 void osx_init_fade_system(void)
 {
-   CGTableCount samples;
+   uint32_t samples;
 
    CGGetDisplayTransferByTable(kCGDirectMainDisplay, 256, &original_table[0], &original_table[256], &original_table[512], &samples);
 }
@@ -180,7 +180,6 @@ static BITMAP *private_osx_qz_full_init(int w, int h, int v_w, int v_h, int colo
       ustrzcpy(allegro_error, ALLEGRO_ERROR_SIZE, get_config_text("Cannot switch main display mode"));
       return NULL;
    }
-   HideMenuBar();
    CGDisplayRestoreColorSyncSettings();
 
    CFNumberGetValue(CFDictionaryGetValue(mode, kCGDisplayRefreshRate), kCFNumberSInt32Type, &refresh_rate);
@@ -272,7 +271,6 @@ static void osx_qz_full_exit(BITMAP *bmp)
       osx_fade_screen(FALSE, 0.1);
       CGDisplaySwitchToMode(kCGDirectMainDisplay, old_mode);
       CGDisplayRelease(kCGDirectMainDisplay);
-      ShowMenuBar();
       if (bitmap_color_depth(bmp) == 8)
          CGDisplayShowCursor(kCGDirectMainDisplay);
       osx_fade_screen(TRUE, 0.2);
